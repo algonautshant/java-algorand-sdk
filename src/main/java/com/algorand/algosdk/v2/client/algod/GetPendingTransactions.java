@@ -14,15 +14,6 @@ import com.algorand.algosdk.v2.client.model.PendingTransactionsResponse;
  */
 public class GetPendingTransactions extends Query {
 
-	private String format;
-	public String format() {
-		return this.format;
-	}
-	private Long max;
-	public Long max() {
-		return this.max;
-	}
-
 	public GetPendingTransactions(Client client) {
 		super(client, "get");
 	}
@@ -30,17 +21,19 @@ public class GetPendingTransactions extends Query {
 	/**
 	 * Configures whether the response object is JSON or MessagePack encoded. 
 	 */
-	public GetPendingTransactions format(String format) {
-		this.format = format;
+	public GetPendingTransactions format(Format format) {
 		addQuery("format", String.valueOf(format));
 		return this;
+	}
+	public enum Format {
+		JSON,
+		MSGPACK
 	}
 
 	/**
 	 * Truncated number of transactions to display. If max=0, returns all pending txns. 
 	 */
 	public GetPendingTransactions max(Long max) {
-		this.max = max;
 		addQuery("max", String.valueOf(max));
 		return this;
 	}
@@ -51,6 +44,7 @@ public class GetPendingTransactions extends Query {
 		resp.setValueType(PendingTransactionsResponse.class);
 		return resp;
 	}
+
 	protected QueryData getRequestString() {
 		addPathSegment(String.valueOf("v2"));
 		addPathSegment(String.valueOf("transactions"));

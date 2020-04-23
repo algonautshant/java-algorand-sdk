@@ -1,8 +1,10 @@
 package com.algorand.algosdk.v2.client.model;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import com.algorand.algosdk.transaction.SignedTransaction;
 import com.algorand.algosdk.v2.client.common.PathResponse;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -11,7 +13,7 @@ public class PendingTransactionsResponse extends PathResponse {
 	/**
 	 * An array of signed transaction objects. 
 	 */	@JsonProperty("top-transactions")
-	public List<String> topTransactions;
+	public List<SignedTransaction> topTransactions = new ArrayList<SignedTransaction>();
 
 	/**
 	 * Total number of transactions in the pool. 

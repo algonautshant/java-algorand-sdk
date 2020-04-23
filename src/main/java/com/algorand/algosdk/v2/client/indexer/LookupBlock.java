@@ -8,14 +8,12 @@ import com.algorand.algosdk.v2.client.model.Block;
 
 
 /**
- * Lookup block. /blocks/{round-number} 
+ * Lookup block. 
+ * /blocks/{round-number} 
  */
 public class LookupBlock extends Query {
 
 	private Long roundNumber;
-	public Long roundNumber() {
-		return this.roundNumber;
-	}
 
 	/**
 	 * @param roundNumber Round number 
@@ -31,6 +29,7 @@ public class LookupBlock extends Query {
 		resp.setValueType(Block.class);
 		return resp;
 	}
+
 	protected QueryData getRequestString() {
 		addPathSegment(String.valueOf("blocks"));
 		addPathSegment(String.valueOf(roundNumber));

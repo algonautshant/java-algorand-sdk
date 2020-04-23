@@ -821,6 +821,21 @@
         }
       }
     },
+    "ErrorResponse": {
+      "description": "An error response with optional data field.",
+      "type": "object",
+      "required": [
+        "message"
+      ],
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "MiniAssetHolding": {
       "description": "A simplified version of AssetHolding ",
       "type": "object",
@@ -1186,9 +1201,9 @@
     },
     "address": {
       "type": "string",
-      "x-algorand-format": "RFC3339 String",
       "description": "Only include transactions with this address in one of the transaction fields.",
       "name": "address",
+      "x-algorand-format": "Address",
       "in": "query"
     },
     "address-role": {
@@ -1269,7 +1284,6 @@
     },
     "note-prefix": {
       "type": "string",
-      "format": "byte",
       "description": "Specifies a prefix which must be contained in the note field.",
       "name": "note-prefix",
       "in": "query"
@@ -1300,7 +1314,6 @@
     },
     "tx-id": {
       "type": "string",
-      "format": "byte",
       "x-algorand-format": "Address",
       "x-go-name": "TxID",
       "description": "Lookup the specific transaction by ID.",
@@ -1441,20 +1454,6 @@
       "description": "(empty)",
       "schema": {
         "$ref": "#/definitions/Block"
-      }
-    },
-    "Error": {
-      "description": "(empty)",
-      "schema": {
-        "type": "object",
-        "required": [
-          "error"
-        ],
-        "properties": {
-          "error": {
-            "type": "string"
-          }
-        }
       }
     },
     "TransactionsResponse": {

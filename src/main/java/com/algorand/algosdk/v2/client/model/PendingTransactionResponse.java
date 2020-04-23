@@ -2,6 +2,7 @@ package com.algorand.algosdk.v2.client.model;
 
 import java.util.Objects;
 
+import com.algorand.algosdk.transaction.SignedTransaction;
 import com.algorand.algosdk.v2.client.common.PathResponse;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -31,6 +32,7 @@ public class PendingTransactionResponse extends PathResponse {
 	 * Indicates that the transaction was kicked out of this node's transaction pool 
 	 * (and specifies why that happened). An empty string indicates the transaction 
 	 * wasn't kicked out of this node's txpool due to an error. 
+	 * 
 	 */	@JsonProperty("pool-error")
 	public String poolError;
 
@@ -47,7 +49,7 @@ public class PendingTransactionResponse extends PathResponse {
 	/**
 	 * The raw signed transaction. 
 	 */	@JsonProperty("txn")
-	public String txn;
+	public SignedTransaction txn;
 
 	@Override
 	public boolean equals(Object o) {

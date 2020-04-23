@@ -1,14 +1,15 @@
 package com.algorand.algosdk.v2.client.model;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 import com.algorand.algosdk.v2.client.common.PathResponse;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-
 /**
- * (lsig) Programatic transaction signature. Definition: 
+ * (lsig) Programatic transaction signature. 
+ * Definition: 
  * data/transactions/logicsig.go 
  */
 public class TransactionSignatureLogicsig extends PathResponse {
@@ -16,7 +17,7 @@ public class TransactionSignatureLogicsig extends PathResponse {
 	/**
 	 * (arg) Logic arguments, base64 encoded. 
 	 */	@JsonProperty("args")
-	public List<String> args;
+	public List<String> args = new ArrayList<String>();
 
 	/**
 	 * (l) Program signed by a signature or multi signature, or hashed to be the 

@@ -8,18 +8,12 @@ import com.algorand.algosdk.v2.client.model.AccountResponse;
 
 
 /**
- * Lookup account information. /accounts/{account-id} 
+ * Lookup account information. 
+ * /accounts/{account-id} 
  */
 public class LookupAccountByID extends Query {
 
 	private String accountId;
-	public String accountId() {
-		return this.accountId;
-	}
-	private Long round;
-	public Long round() {
-		return this.round;
-	}
 
 	/**
 	 * @param accountId account string 
@@ -33,7 +27,6 @@ public class LookupAccountByID extends Query {
 	 * Include results for the specified round. 
 	 */
 	public LookupAccountByID round(Long round) {
-		this.round = round;
 		addQuery("round", String.valueOf(round));
 		return this;
 	}
@@ -44,6 +37,7 @@ public class LookupAccountByID extends Query {
 		resp.setValueType(AccountResponse.class);
 		return resp;
 	}
+
 	protected QueryData getRequestString() {
 		addPathSegment(String.valueOf("accounts"));
 		addPathSegment(String.valueOf(accountId));

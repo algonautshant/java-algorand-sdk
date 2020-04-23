@@ -4,20 +4,25 @@ import com.algorand.algosdk.v2.client.common.Client;
 import com.algorand.algosdk.v2.client.common.Query;
 import com.algorand.algosdk.v2.client.common.QueryData;
 import com.algorand.algosdk.v2.client.common.Response;
-import com.algorand.algosdk.v2.client.model.AssetBalancesResponse;
+import com.algorand.algosdk.v2.client.model.AccountsResponse;
 
 
 /**
- * Lookup the list of accounts who hold this asset 
- * /assets/{asset-id}/balances 
+ * Search for accounts. 
+ * /accounts 
  */
-public class LookupAssetBalances extends Query {
+public class SearchForAccounts extends Query {
 
-	private Long assetId;
-
-	public LookupAssetBalances(Client client, Long assetId) {
+	public SearchForAccounts(Client client) {
 		super(client, "get");
-		this.assetId = assetId;
+	}
+
+	/**
+	 * Asset ID 
+	 */
+	public SearchForAccounts assetId(Long assetId) {
+		addQuery("asset-id", String.valueOf(assetId));
+		return this;
 	}
 
 	/**
@@ -25,7 +30,7 @@ public class LookupAssetBalances extends Query {
 	 * default currency unless an asset-id is provided, in which case the asset will be 
 	 * used. 
 	 */
-	public LookupAssetBalances currencyGreaterThan(Long currencyGreaterThan) {
+	public SearchForAccounts currencyGreaterThan(Long currencyGreaterThan) {
 		addQuery("currency-greater-than", String.valueOf(currencyGreaterThan));
 		return this;
 	}
@@ -34,7 +39,7 @@ public class LookupAssetBalances extends Query {
 	 * Results should have an amount less than this value. MicroAlgos are the default 
 	 * currency unless an asset-id is provided, in which case the asset will be used. 
 	 */
-	public LookupAssetBalances currencyLessThan(Long currencyLessThan) {
+	public SearchForAccounts currencyLessThan(Long currencyLessThan) {
 		addQuery("currency-less-than", String.valueOf(currencyLessThan));
 		return this;
 	}
@@ -42,7 +47,7 @@ public class LookupAssetBalances extends Query {
 	/**
 	 * Maximum number of results to return. 
 	 */
-	public LookupAssetBalances limit(Long limit) {
+	public SearchForAccounts limit(Long limit) {
 		addQuery("limit", String.valueOf(limit));
 		return this;
 	}
@@ -50,30 +55,29 @@ public class LookupAssetBalances extends Query {
 	/**
 	 * The next page of results. Use the next token provided by the previous results. 
 	 */
-	public LookupAssetBalances next(String next) {
+	public SearchForAccounts next(String next) {
 		addQuery("next", String.valueOf(next));
 		return this;
 	}
 
 	/**
-	 * Include results for the specified round. 
+	 * Include results for the specified round. For performance reasons, this parameter 
+	 * may be disabled on some configurations. 
 	 */
-	public LookupAssetBalances round(Long round) {
+	public SearchForAccounts round(Long round) {
 		addQuery("round", String.valueOf(round));
 		return this;
 	}
 
 	@Override
-	public Response<AssetBalancesResponse> execute() throws Exception {
-		Response<AssetBalancesResponse> resp = baseExecute();
-		resp.setValueType(AssetBalancesResponse.class);
+	public Response<AccountsResponse> execute() throws Exception {
+		Response<AccountsResponse> resp = baseExecute();
+		resp.setValueType(AccountsResponse.class);
 		return resp;
 	}
 
 	protected QueryData getRequestString() {
-		addPathSegment(String.valueOf("assets"));
-		addPathSegment(String.valueOf(assetId));
-		addPathSegment(String.valueOf("balances"));
+		addPathSegment(String.valueOf("accounts"));
 
 		return qd;
 	}

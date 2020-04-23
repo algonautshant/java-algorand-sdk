@@ -17,7 +17,7 @@ public class RunIndexerTests extends TestGenerator{
 	}
 
 	public static void main (String args[]) throws Exception {
-		File f = new File("../openapi-server-generator/scripts/indexer.oas2.yml");
+		File f = new File("src/main/java/com/algorand/sdkutils/indexer.oas2.json");
 		FileInputStream fis = new FileInputStream(f);
 
 		JsonNode root = Utils.getRoot(fis);	
@@ -30,7 +30,12 @@ public class RunIndexerTests extends TestGenerator{
 
 		File inFile = new File("./src/main/java/com/algorand/sdkutils/test.csv");
 		BufferedReader br = new BufferedReader(new FileReader(inFile));
-		testSamples(tg, br, client, true);
+		boolean passed = testSamples(tg, br, client, true);
+		if (!passed) {
+			System.out.println("[FAILED]");
+		} else {
+			System.out.println("[PASSED]");
+		}
 		br.close();
 		System.out.println("File tested: " + "./src/main/java/com/algorand/sdkutils/test.csv");
 	}

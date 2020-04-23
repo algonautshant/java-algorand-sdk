@@ -1,15 +1,15 @@
 package com.algorand.algosdk.v2.client.model;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 import com.algorand.algosdk.v2.client.common.PathResponse;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-
 /**
- * Note that we annotate this as a model so that legacy clients can directly import 
- * a swagger generated Version model. 
+ * Note that we annotate this as a model so that legacy clients 
+ * can directly import a swagger generated Version model. 
  */
 public class Version extends PathResponse {
 
@@ -23,7 +23,7 @@ public class Version extends PathResponse {
 	public String genesisId;
 
 	@JsonProperty("versions")
-	public List<String> versions;
+	public List<String> versions = new ArrayList<String>();
 
 	@Override
 	public boolean equals(Object o) {

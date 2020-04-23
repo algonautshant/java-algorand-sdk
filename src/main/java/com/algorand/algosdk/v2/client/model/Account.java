@@ -1,15 +1,17 @@
 package com.algorand.algosdk.v2.client.model;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 import com.algorand.algosdk.v2.client.common.PathResponse;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-
 /**
- * Account information at a given round. Definition: data/basics/userBalance.go : 
- * AccountData 
+ * Account information at a given round. 
+ * Definition: 
+ * data/basics/userBalance.go : AccountData 
+ * 
  */
 public class Account extends PathResponse {
 
@@ -29,16 +31,16 @@ public class Account extends PathResponse {
 	public Long amountWithoutPendingRewards;
 
 	/**
-	 * (asset) assets held by this account. Note the raw object uses `map[int] -> 
-	 * AssetHolding` for this type. 
+	 * (asset) assets held by this account. 
+	 * Note the raw object uses `map[int] -> AssetHolding` for this type. 
 	 */	@JsonProperty("assets")
-	public List<AssetHolding> assets;
+	public List<AssetHolding> assets = new ArrayList<AssetHolding>();
 
 	/**
-	 * (apar) parameters of assets created by this account. Note: the raw account uses 
-	 * `map[int] -> Asset` for this type. 
+	 * (apar) parameters of assets created by this account. 
+	 * Note: the raw account uses `map[int] -> Asset` for this type. 
 	 */	@JsonProperty("created-assets")
-	public List<Asset> createdAssets;
+	public List<Asset> createdAssets = new ArrayList<Asset>();
 
 	@JsonProperty("participation")
 	public AccountParticipation participation;
@@ -66,18 +68,27 @@ public class Account extends PathResponse {
 	public Long round;
 
 	/**
-	 * (onl) delegation status of the account's MicroAlgos * Offline - indicates that 
-	 * the associated account is delegated. * Online - indicates that the associated 
-	 * account used as part of the delegation pool. * NotParticipating - indicates that 
-	 * the associated account is neither a delegator nor a delegate. 
+	 * (onl) delegation status of the account's MicroAlgos 
+	 *   Offline - indicates that the associated account is delegated. 
+	 *   Online - indicates that the associated account used as part of the delegation 
+	 * pool. 
+	 *   NotParticipating - indicates that the associated account is neither a 
+	 * delegator nor a delegate. 
 	 */	@JsonProperty("status")
 	public String status;
 
 	/**
-	 * Indicates what type of signature is used by this account, must be one of: * sig 
-	 * * msig * lsig 
+	 * Indicates what type of signature is used by this account, must be one of: 
+	 *   sig 
+	 *   msig 
+	 *   lsig 
 	 */	@JsonProperty("type")
-	public String type;
+	public Type type;
+	public enum Type {
+		@JsonProperty("sig") SIG,
+		@JsonProperty("msig") MSIG,
+		@JsonProperty("lsig") LSIG
+	}
 
 	@Override
 	public boolean equals(Object o) {

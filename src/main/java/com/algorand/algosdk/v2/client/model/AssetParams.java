@@ -5,10 +5,11 @@ import java.util.Objects;
 import com.algorand.algosdk.v2.client.common.PathResponse;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-
 /**
- * AssetParams specifies the parameters for an asset. (apar) when part of an 
- * AssetConfig transaction. Definition: data/transactions/asset.go : AssetParams 
+ * AssetParams specifies the parameters for an asset. 
+ * (apar) when part of an AssetConfig transaction. 
+ * Definition: 
+ * data/transactions/asset.go : AssetParams 
  */
 public class AssetParams extends PathResponse {
 
@@ -68,7 +69,7 @@ public class AssetParams extends PathResponse {
 	/**
 	 * (t) The total number of units of this asset. 
 	 */	@JsonProperty("total")
-	public Long total;
+	public java.math.BigInteger total;
 
 	/**
 	 * (un) Name of a unit of this asset, as supplied by the creator. 

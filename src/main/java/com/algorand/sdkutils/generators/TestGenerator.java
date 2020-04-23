@@ -1,19 +1,19 @@
 package com.algorand.sdkutils.generators;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.StringTokenizer;
 
 import com.algorand.algosdk.v2.client.common.Client;
 import com.algorand.algosdk.v2.client.common.Query;
-import com.algorand.algosdk.v2.client.common.QueryData;
 import com.algorand.sdkutils.generated.QueryMapper;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.squareup.okhttp.HttpUrl;
 
 public class TestGenerator extends Generator {
 	static String callExternalCurl(String request) {
@@ -46,9 +46,17 @@ public class TestGenerator extends Generator {
 	}
 
 	public static boolean testSamples(TestGenerator tg, BufferedReader br, Client client, boolean verbose) throws Exception {
+		// create the directory golden if it does not exist
+		File goldenDir = new File("golden");
+		if (!goldenDir.exists()) {
+			goldenDir.mkdir();
+		}
+		
 		JsonNode paths = tg.root.get("paths");
 		JsonNode pathNode = null;
 		boolean failed = false;
+		String operationId = "";
+		int caseCounter = 0;
 		while (true) {
 			String line = br.readLine();
 			if (line == null) {
@@ -60,14 +68,13 @@ public class TestGenerator extends Generator {
 			if (line.charAt(0) == '/') {
 				String pathString = getPathFromLine(line);
 				pathNode = paths.get(pathString);
+				operationId = pathNode.findValue("operationId").asText();
+				caseCounter = 0;
 			} else {
 				// this is a test sample
 				
 				String[] columns = line.split(",");
 				JsonNode paramNode = pathNode.findValue("parameters");
-				
-				// get the url
-				String httpUrl = "http://" + client.getHost() + ":" + client.getPort() + columns[0].substring(1);
 				
 				// Get the constructor params
 				ArrayList<String> al = new ArrayList<String>();
@@ -112,14 +119,30 @@ public class TestGenerator extends Generator {
 					QueryMapper.setValue(query, methodName, parameter.getKey(), value);
 				}
 				
+				// Call the SDK
+				String sdkResponse = QueryMapper.lookup(query, methodName);
+
+				// get the url
+				String httpUrl = "http://" + client.getHost() + ":" + client.getPort();
+				if (columns[0].substring(1).isEmpty()) {
+					httpUrl = query.getRequestUrl(client.getPort(), client.getHost());
+				} else {
+					httpUrl = httpUrl + columns[0].substring(1);
+				}
+				
+				// Prepare the file: 
+				File file = new File("golden/" + operationId + "_" + String.valueOf(caseCounter) + ".json");
+				BufferedWriter bw = new BufferedWriter(new FileWriter(file));
+				
 				// Call the node directly using curl
-				System.out.println("\n" + httpUrl);
+				System.out.println("\n******************************************\n" + httpUrl);
+				bw.append(httpUrl + "\n");
 				
 				//callExternalCurl
 				String curlResponse = callExternalCurl(httpUrl);
+				bw.append(Utils.formatJson(curlResponse));
 				
-				// Call the SDK
-				String sdkResponse = QueryMapper.lookup(query, methodName);
+				// compare the results
 				String filter = "round\"";
 				String diff = Utils.showDifferentces(curlResponse, sdkResponse, "curl", "sdk", verbose, filter);
 
@@ -138,6 +161,8 @@ public class TestGenerator extends Generator {
 				} else {
 					System.out.print(diff);
 				}
+				caseCounter++;
+				bw.close();
 			}
 		}
 		return !failed;

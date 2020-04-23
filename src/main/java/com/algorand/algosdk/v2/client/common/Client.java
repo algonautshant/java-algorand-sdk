@@ -7,6 +7,7 @@ import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
+import com.algorand.algosdk.crypto.Address;
 
 import com.algorand.algosdk.v2.client.algod.AccountInformation;
 import com.algorand.algosdk.v2.client.algod.GetPendingTransactionsByAddress;
@@ -20,7 +21,7 @@ import com.algorand.algosdk.v2.client.algod.RawTransaction;
 import com.algorand.algosdk.v2.client.algod.TransactionParams;
 import com.algorand.algosdk.v2.client.algod.GetPendingTransactions;
 import com.algorand.algosdk.v2.client.algod.PendingTransactionInformation;
-import com.algorand.algosdk.v2.client.indexer.SearchAccounts;
+import com.algorand.algosdk.v2.client.indexer.SearchForAccounts;
 import com.algorand.algosdk.v2.client.indexer.LookupAccountByID;
 import com.algorand.algosdk.v2.client.indexer.LookupAccountTransactions;
 import com.algorand.algosdk.v2.client.indexer.SearchForAssets;
@@ -94,11 +95,11 @@ public class Client {
 	}
 	
 	
-	public AccountInformation AccountInformation(String address) {
+	public AccountInformation AccountInformation(Address address) {
 		return new AccountInformation((Client) this, address);
 	}
 
-	public GetPendingTransactionsByAddress GetPendingTransactionsByAddress(String address) {
+	public GetPendingTransactionsByAddress GetPendingTransactionsByAddress(Address address) {
 		return new GetPendingTransactionsByAddress((Client) this, address);
 	}
 
@@ -110,7 +111,7 @@ public class Client {
 		return new GetSupply((Client) this);
 	}
 
-	public RegisterParticipationKeys RegisterParticipationKeys(String address) {
+	public RegisterParticipationKeys RegisterParticipationKeys(Address address) {
 		return new RegisterParticipationKeys((Client) this, address);
 	}
 
@@ -142,8 +143,8 @@ public class Client {
 		return new PendingTransactionInformation((Client) this, txid);
 	}
 
-	public SearchAccounts searchAccounts() {
-		return new SearchAccounts((Client) this);
+	public SearchForAccounts searchForAccounts() {
+		return new SearchForAccounts((Client) this);
 	}
 
 	public LookupAccountByID lookupAccountByID(String accountId) {

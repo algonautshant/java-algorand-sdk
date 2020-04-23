@@ -1,5 +1,6 @@
 package com.algorand.algosdk.v2.client.algod;
 
+import com.algorand.algosdk.crypto.Address;
 import com.algorand.algosdk.v2.client.common.Client;
 import com.algorand.algosdk.v2.client.common.Query;
 import com.algorand.algosdk.v2.client.common.QueryData;
@@ -9,19 +10,17 @@ import com.algorand.algosdk.v2.client.model.Account;
 
 /**
  * Given a specific account public key, this call returns the accounts status, 
- * balance and spendable amounts /v2/accounts/{address} 
+ * balance and spendable amounts 
+ * /v2/accounts/{address} 
  */
 public class AccountInformation extends Query {
 
-	private String address;
-	public String address() {
-		return this.address;
-	}
+	private Address address;
 
 	/**
 	 * @param address An account public key 
 	 */
-	public AccountInformation(Client client, String address) {
+	public AccountInformation(Client client, Address address) {
 		super(client, "get");
 		this.address = address;
 	}
@@ -32,6 +31,7 @@ public class AccountInformation extends Query {
 		resp.setValueType(Account.class);
 		return resp;
 	}
+
 	protected QueryData getRequestString() {
 		addPathSegment(String.valueOf("v2"));
 		addPathSegment(String.valueOf("accounts"));
