@@ -30,6 +30,7 @@ public class Indexer {
     Response<AssetResponse> assetResponse;
     Response<AssetBalancesResponse> assetBalancesResponse;
     Response<TransactionsResponse> transactionsResponse;
+    Response<AssetsResponse> assetsResponse;
 
     public static <T extends Enum<?>> T searchEnum(Class<T> enumeration, String search) {
         for (T each : enumeration.getEnumConstants()) {
@@ -60,9 +61,13 @@ public class Indexer {
         assertThat(block.previousBlockHash).isEqualTo(previousBlockHash);
     }
 
-    @When("I use {int} to lookup account {string}")
-    public void i_lookup_account_with(Integer indexer, String account) throws Exception {
-        accountResponse = indexerClients.get(indexer).lookupAccountByID(account).execute();
+    @When("I use {int} to lookup account {string} at round {long}")
+    public void i_lookup_account_with(Integer indexer, String account, Long round) throws Exception {
+        LookupAccountByID query = indexerClients.get(indexer).lookupAccountByID(account);
+        if (round != 0) {
+            query.round(round);
+        }
+        accountResponse = query.execute();
     }
 
     @Then("The account has {int} assets, the first is asset {long} has a frozen status of {string} and amount {long}.")
@@ -75,11 +80,19 @@ public class Indexer {
         assertThat(holding.amount).isEqualTo(amount);
     }
 
-    @Then("The account has {long} μalgos and {int} assets")
-    public void the_account_has_μalgos_and_assets(Long amount, Integer numAssets) {
+    @Then("The account has {long} μalgos and {int} assets, {long} has {long}")
+    public void the_account_has_μalgos_and_assets(Long amount, Integer numAssets, Long assetId, Long assetAmount) {
         AccountResponse response = accountResponse.body();
         assertThat(response.account.assets).hasSize(numAssets);
-        assertThat(response.account.amount).isEqualTo(amount);
+        assertThat(response.account.amount).as("μalgos").isEqualTo(amount);
+
+        if (assetId != 0) {
+            response.account.assets.forEach(a -> {
+                if (a.assetId == assetId) {
+                    assertThat(a.amount).as("assets").isEqualTo(assetAmount);
+                }
+            });
+        }
     }
 
     @Then("The account created {int} assets, the first is asset {long} is named {string} with a total amount of {biginteger} {string}")
@@ -111,8 +124,8 @@ public class Indexer {
         assertThat(params.clawback).isEqualTo(clawbackAddress);
     }
 
-    @When("I use {int} to lookup asset balances for {long} with {long}, {long}, {long}")
-    public void i_lookup_asset_balances_for_with_with(Integer indexer, Long assetId, Long currencyGT, Long currencyLT, Long limit) throws Exception {
+    @When("I use {int} to lookup asset balances for {long} with {long}, {long}, {long} and token {string}")
+    public void i_lookup_asset_balances_for_with_with(Integer indexer, Long assetId, Long currencyGT, Long currencyLT, Long limit, String next) throws Exception {
         LookupAssetBalances query = indexerClients.get(indexer).lookupAssetBalances(assetId);
         if (currencyGT != 0) {
             query.currencyGreaterThan(currencyGT);
@@ -122,6 +135,9 @@ public class Indexer {
         }
         if (limit != 0) {
             query.limit(limit);
+        }
+        if (StringUtils.isNotEmpty(next)) {
+            query.next(next);
         }
         assetBalancesResponse = query.execute();
     }
@@ -138,6 +154,11 @@ public class Indexer {
         assertThat(holding.amount).isEqualTo(amount);
     }
 
+    @When("I get the next page using {int} to lookup asset balances for {long} with {long}, {long}, {long}")
+    public void i_get_the_next_page_using_to_search_for_asset_balances_with(Integer indexer, Long assetId, Long currencyGT, Long currencyLT, Long limit) throws Exception {
+        String token = assetBalancesResponse.body().nextToken;
+        i_lookup_asset_balances_for_with_with(indexer, assetId, currencyGT, currencyLT, limit, token);
+    }
 
     @When("I use {int} to search for an account with {long}, {long}, {long}, {long} and token {string}")
     public void searchForAnAccount(Integer indexer, Long assetId, Long limit, Long gt, Long lt, String token) throws Exception {
@@ -397,4 +418,38 @@ public class Indexer {
                 0L, 0L, maxRound, 0L, "", "", 0L, 0L,
                 "", "", "", next);
     }
+
+    @When("I use {int} to search for assets with {long}, {long}, {string}, {string}, {string}, and token {string}")
+    public void i_use_to_search_for_assets_with_and_token(Integer indexer, Long limit, Long assetId, String creator, String name, String unit, String token) throws Exception {
+        SearchForAssets query = indexerClients.get(indexer).searchForAssets();
+
+        if (limit != 0) {
+            query.limit(limit);
+        }
+        if (assetId != 0) {
+            query.assetId(assetId);
+        }
+        if (StringUtils.isNotEmpty(creator)) {
+            query.creator(creator);
+        }
+        if (StringUtils.isNotEmpty(name)) {
+            query.name(name);
+        }
+        if (StringUtils.isNotEmpty(unit)) {
+            query.unit(unit);
+        }
+        if (StringUtils.isNotEmpty(token)) {
+            query.next(token);
+        }
+        assetsResponse = query.execute();
+    }
+
+    @Then("there are {int} assets in the response, the first is {long}.")
+    public void there_are_assets_in_the_response_the_first_is(Integer num, Long assetId) {
+        AssetsResponse response = assetsResponse.body();
+        assertThat(response.assets).hasSize(num);
+        response.assets.forEach(a -> assertThat(a.index).isEqualTo(assetId));
+    }
+
+
 }
