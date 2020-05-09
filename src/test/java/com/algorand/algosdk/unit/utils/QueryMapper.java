@@ -59,6 +59,8 @@ public class QueryMapper {
 			return client.GetPendingTransactions();
 		case "PendingTransactionInformation":
 			return client.PendingTransactionInformation(args[0]);
+		case "StartCatchup":
+			return client.StartCatchup(args[0]);
 		}
 		return null;
 	}
@@ -355,6 +357,10 @@ public class QueryMapper {
 			case "format":
 				((PendingTransactionInformation)q).format(getFormat(value));
 				break;
+			}
+			break;
+		case "StartCatchup":
+			switch (property) {
 			}
 			break;
 
