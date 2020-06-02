@@ -17,6 +17,11 @@ import java.util.TreeSet;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+// TypeDef hold together information about a type
+// typeName is the generated code type: e.g. List<abc>, or MyEnumClassName
+// def is the definition of the type. e.g. the class declaration of the enum class
+// type is a loosely defined tag used by generator e.g. enum, list, etc.  
+// e.g. For enum type, typeName will be enum class name, def will be the enum 
 class TypeDef {
     public TypeDef(String typeName, String def, String type) {
         this.typeName = typeName;
@@ -85,6 +90,8 @@ public class Generator {
         return ans;
     }
 
+    // Get TypeDef for Address type. 
+    // It provides the special getter/setter needed for this type.
     static TypeDef getAddress(String propName, Map<String, Set<String>> imports, boolean forModel) {
         addImport(imports, "com.algorand.algosdk.crypto.Address");
         if (forModel) {
@@ -92,18 +99,22 @@ public class Generator {
         }
 
         StringBuffer sb = new StringBuffer();
-        sb.append(TAB + "@JsonProperty(\"" + propName + "\")\n" +
-                "    public void " + propName + "(String "+ propName +") throws NoSuchAlgorithmException {\n" +
-                "         this."+ propName +" = new Address("+ propName +");\n" +
-                "     }\n" +
-                "    @JsonProperty(\""+ propName +"\")\n" +
-                "    public String "+ propName +"() throws NoSuchAlgorithmException {\n" +
-                "        return this."+ propName +".encodeAsString();\n" +
-                "    }\n" +
-                "    public Address " + propName + ";\n");
+        String javaName = getCamelCase(propName, false);
+
+        sb.append(TAB + "@JsonProperty(\"" + propName + "\")\n" + 
+                "    public void " + javaName + "(String "+ javaName +") throws NoSuchAlgorithmException {\n" + 
+                "        this."+ javaName +" = new Address("+ javaName +");\n" + 
+                "    }\n" + 
+                "    @JsonProperty(\""+ propName +"\")\n" + 
+                "    public String "+ javaName +"() throws NoSuchAlgorithmException {\n" + 
+                "        return this."+ javaName +".encodeAsString();\n" + 
+                "    }\n" + 
+                "    public Address " + javaName + ";\n");
         return new TypeDef("Address", sb.toString(), "getterSetter");
     }
 
+    // Get base64 encoded byte[] type.
+    // It provides the special getter/setter needed for this type
     static TypeDef getBase64Encoded(String propName, Map<String, Set<String>> imports, boolean forModel) {
         if (imports != null) {
             addImport(imports, "com.algorand.algosdk.util.Encoder");
@@ -123,6 +134,8 @@ public class Generator {
         return new TypeDef("byte[]", sb.toString(), "getterSetter");
     }
 
+    // Get array type of base64 encoded bytes.
+    // It provides the special getter/setter needed for this type
     static TypeDef getBase64EncodedArray(String propName, Map<String, Set<String>> imports, boolean forModel) {
         if (forModel == false) {
             throw new RuntimeException("array of byte[] cannot yet be used in a path or path query.");
@@ -154,6 +167,8 @@ public class Generator {
         return new TypeDef("", sb.toString(), "getterSetter");
     }
 
+    // Get array type of base64 encoded bytes.
+    // It provides the special getter/setter needed for this type
     static TypeDef getEnum(JsonNode prop, String propName) {
         JsonNode enumNode = prop.get("enum");
         if (enumNode == null) {
@@ -190,8 +205,9 @@ public class Generator {
         return new TypeDef(enumClassName, sb.toString(), "enum");
     }
 
-    static TypeDef getType(
-            JsonNode prop,
+    // getType returns the type fron the JsonNode
+    TypeDef getType(
+            JsonNode prop, 
             boolean asObject,
             Map<String, Set<String>> imports,
             String propName, boolean forModel) {
@@ -199,7 +215,12 @@ public class Generator {
         if (prop.get("$ref") != null) {
             JsonNode typeNode = prop.get("$ref");
             String type = getTypeNameFromRef(typeNode.asText());
-            return new TypeDef(type);
+            // Need to check here if this type does not have a class of its own 
+            // No C/C++ style typedef in java, and this type could be a class with no properties
+            prop = getFromRef(typeNode.asText());
+            if (hasProperties(prop)) {
+                return new TypeDef(type);
+            }
         }
 
         if (prop.get("enum") != null) {
@@ -260,6 +281,9 @@ public class Generator {
         }
     }
 
+    // getTypeFormat returns the additional type formatting information
+    // There could be multiple such tags in the spec file. This method knows which 
+    // one is relevant here. 
     public static String getTypeFormat(JsonNode typeNode, String propName) {
         String format = typeNode.get("x-algorand-format") != null ? typeNode.get("x-algorand-format").asText() : "";
         String type = typeNode.get("type").asText();
@@ -286,6 +310,8 @@ public class Generator {
         }
     }
 
+    // Imports are collected and organized before printed as import statements.
+    // addImports adds a needed import class. 
     static void addImport(Map<String, Set<String>> imports, String imp) {
         String key = imp.substring(0, imp.indexOf('.'));
         if (imports.get(key) == null) {
@@ -294,6 +320,8 @@ public class Generator {
         imports.get(key).add(imp);
     }
 
+    // getImports organizes the imports and returns the block of import statements
+    // The statements are unique, and organized. 
     static String getImports(Map<String, Set<String>> imports) {
         StringBuffer sb = new StringBuffer();
 
@@ -317,6 +345,8 @@ public class Generator {
         return sb.toString();
     }
 
+    // getPropertyWithJsonSetter formats the property into java declaration type with 
+    // the appropriate json annotation.
     static String getPropertyWithJsonSetter(TypeDef typeObj, String javaName, String jprop){
         StringBuffer buffer = new StringBuffer();
 
@@ -343,7 +373,8 @@ public class Generator {
         return buffer.toString();
     }
 
-
+    // returns true if the type needs an import statement. 
+    // Not needed for primitive types. 
     static boolean needsClassImport(String type) {
         switch (type) {
         case "integer":
@@ -355,6 +386,9 @@ public class Generator {
         }
     }
 
+    // formatComment formats the comment by breaking lines, and incorporating 
+    // embedded formatting inside the comment. 
+    // If the comment is embedded inside another comment, full == false
     static String formatComment(String comment, String tab, boolean full) {
         StringBuffer sb = new StringBuffer();
 
@@ -395,6 +429,7 @@ public class Generator {
         return sb.toString();
     }
 
+    // Returns an iterator in sorted order of the properties (json nodes). 
     static Iterator<Entry<String, JsonNode>> getSortedProperties(JsonNode properties) {
         Iterator<Entry<String, JsonNode>> props = properties.fields();
         TreeMap<String, JsonNode> propMap = new TreeMap<String, JsonNode>();
@@ -406,6 +441,7 @@ public class Generator {
         return sortedProps;
     }
 
+    // Returns an iterator in sorted order of the parameters (json nodes). 
     Iterator<Entry<String, JsonNode>> getSortedParameters(JsonNode properties) {
         TreeMap<String, JsonNode> tm = new TreeMap<String, JsonNode>();
         if (properties == null) {
@@ -430,8 +466,8 @@ public class Generator {
         return null;
     }
 
-    // Model class properties
-    static void writeProperties(StringBuffer buffer, Iterator<Entry<String, JsonNode>> properties, Map<String, Set<String>> imports) {
+    // Write the properties of the Model class.
+    void writeProperties(StringBuffer buffer, Iterator<Entry<String, JsonNode>> properties, Map<String, Set<String>> imports) {
         while (properties.hasNext()) {
             Entry<String, JsonNode> prop = properties.next();
             String jprop = prop.getKey();
@@ -455,6 +491,7 @@ public class Generator {
         }
     }
 
+    // Writes the compare methods by adding a comparator for each class member. 
     static void writeCompareMethod(String className, StringBuffer buffer, Iterator<Entry<String, JsonNode>> properties) {
         buffer.append("    @Override\n" +
                 "    public boolean equals(Object o) {\n" +
@@ -472,7 +509,9 @@ public class Generator {
         buffer.append("\n        return true;\n    }\n");
     }
 
-    static void writeClass(String className, JsonNode propertiesNode, String desc, String directory, String pkg) throws IOException {
+    // writeClass writes the Model class. 
+    // This is the root method for writing the complete class. 
+    void writeClass(String className, JsonNode propertiesNode, String desc, String directory, String pkg) throws IOException {
         System.out.println("Generating ... " + className);
 
         Iterator<Entry<String, JsonNode>> properties = getSortedProperties(propertiesNode);
@@ -503,6 +542,9 @@ public class Generator {
         bw.close();
     }
 
+    // getPathInserts converts the path string into individual tokens which correspond
+    // to the class members in the generated code. 
+    // These are used to set the path segments in the constructor. 
     static ArrayList<String> getPathInserts(String path) {
         ArrayList<String> nPath = new ArrayList<String>();
         StringTokenizer st = new StringTokenizer(path, "/");
@@ -547,8 +589,16 @@ public class Generator {
         }
         return false;
     }
+    static boolean hasProperties(JsonNode itemNode) {
+        if (itemNode.get("properties") == null) {
+            return false;
+        }
+        return true;
+    }
 
-    static String processQueryParams(
+    // Query parameters need be in builder methods.
+    // processQueryParameters do all the processing of the parameters. 
+    String processQueryParams(
             StringBuffer generatedPathsEntry,
             Iterator<Entry<String, JsonNode>> properties,
             String className,
@@ -584,6 +634,9 @@ public class Generator {
             }
             String propCode = prop.getKey();
 
+            // The parameters are either in the path or in the query
+
+            // Populate generator structures for the in path parameters
             if (inPath(prop.getValue())) {
                 if (propType.isOfType("enum")) {
                     throw new RuntimeException("Enum in paths is not supported! " + propName);
@@ -695,6 +748,8 @@ public class Generator {
         return ans;
     }
 
+    // Write the class of a path expression
+    // This is the root method for preparing the complete class
     void writeQueryClass(
             StringBuffer generatedPathsEntry,
             JsonNode spec,
@@ -766,6 +821,7 @@ public class Generator {
         bw.close();
     }
 
+    // Generate all the enum classes in the spec file. 
     public static void generateEnumClasses (JsonNode root, String rootPath, String pkg) throws IOException {
 
         BufferedWriter bw = getFileWriter("Enums", rootPath);
@@ -797,15 +853,19 @@ public class Generator {
         bw.close();
     }
 
-    public static void generateAlgodIndexerObjects (JsonNode root, String rootPath, String pkg) throws IOException {
-
-        JsonNode schemas = root.get("components") != null ?
-                root.get("components").get("schemas") :
+    // Generate all the Indexer or algod model classes 
+    public void generateAlgodIndexerObjects (JsonNode root, String rootPath, String pkg) throws IOException {
+        JsonNode schemas = root.get("components") != null ? 
+                root.get("components").get("schemas") : 
                     root.get("definitions");
                 Iterator<Entry<String, JsonNode>> classes = schemas.fields();
                 while (classes.hasNext()) {
                     Entry<String, JsonNode> cls = classes.next();
                     String desc = null;
+                    if (!hasProperties(cls.getValue())) {
+                        // If it has no properties, no class is needed for this type.
+                        continue;
+                    }
                     if (cls.getValue().get("description") != null) {
                         desc = cls.getValue().get("description").asText();
                         desc = formatComment(desc, "", true);
@@ -814,9 +874,10 @@ public class Generator {
                 }
     }
 
-    public static void generateReturnTypes (JsonNode root, String rootPath, String pkg) throws IOException {
-        JsonNode returns = root.get("components") != null ?
-                root.get("components").get("responses") :
+    // Generate all the Indexer or algod return type classes 
+    public void generateReturnTypes (JsonNode root, String rootPath, String pkg) throws IOException {
+        JsonNode returns = root.get("components") != null ? 
+                root.get("components").get("responses") : 
                     root.get("responses");
                 Iterator<Entry<String, JsonNode>> returnTypes = returns.fields();
                 while (returnTypes.hasNext()) {
@@ -834,6 +895,7 @@ public class Generator {
                 }
     }
 
+    // Generate all the path expression classes
     public void generateQueryMethods(String rootPath, String pkg, String modelPkg, File gpImpDirFile, File gpMethodsDirFile) throws IOException {
         // GeneratedPaths file
         try (   BufferedWriter gpImports = new BufferedWriter(new FileWriter(gpImpDirFile));

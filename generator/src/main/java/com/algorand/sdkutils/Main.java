@@ -88,13 +88,14 @@ public class Main {
         Generator g = new Generator(root);
 
         // Generate classes from the schemas
+        // These are the non-premetive types for which classes are needed
         System.out.println("Generating " + modelPackage + " to " + modelPath);
-        Generator.generateAlgodIndexerObjects(root, modelPath, modelPackage);
-        Generator.generateEnumClasses(root, modelPath, modelPackage);
+        g.generateAlgodIndexerObjects(root, modelPath, modelPackage);
+        g.generateEnumClasses(root, modelPath, modelPackage);
 
         // Generate classes from the return types which have more than one return element
         System.out.println("Generating " + modelPackage + " to " + modelPath);
-        Generator.generateReturnTypes(root, modelPath, modelPackage);
+        g.generateReturnTypes(root, modelPath, modelPackage);
 
         // Generate the algod methods
         File imports = Files.createTempFile("imports_file", "txt").toFile();
