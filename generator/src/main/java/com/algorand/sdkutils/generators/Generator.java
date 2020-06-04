@@ -107,7 +107,11 @@ public class Generator {
                 "    }\n" + 
                 "    @JsonProperty(\""+ propName +"\")\n" + 
                 "    public String "+ javaName +"() throws NoSuchAlgorithmException {\n" + 
-                "        return this."+ javaName +".encodeAsString();\n" + 
+                "        if (this."+ javaName +" != null) {\n" +
+                "            return this."+ javaName +".encodeAsString();\n" +
+                "        } else {\n" +
+                "            return null;\n" +
+                "        }\n" +
                 "    }\n" + 
                 "    public Address " + javaName + ";\n");
         return new TypeDef("Address", sb.toString(), "getterSetter");
@@ -629,7 +633,10 @@ public class Generator {
 
             // Do not expose format property
             if (propType.typeName.equals("Enums.Format")) {
-                addFormatMsgpack = true;
+                if (!className.equals("AccountInformation")) {
+                    // Don't set format to msgpack for AccountInformation
+                    addFormatMsgpack = true;
+                }
                 continue;
             }
             String propCode = prop.getKey();
