@@ -2,6 +2,9 @@ package com.algorand.sdkutils;
 
 import com.algorand.sdkutils.generators.Generator;
 import com.algorand.sdkutils.generators.Utils;
+import com.algorand.sdkutils.listeners.GoGenerator;
+import com.algorand.sdkutils.listeners.Publisher;
+import com.algorand.sdkutils.listeners.TestcaseGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.cli.*;
 
@@ -67,6 +70,7 @@ public class Main {
      * @param commonPackage  Package name to put at the top of generated client class.
      * @param tokenName      Name of the token used for this application. i.e. X-Algo-API-Token
      * @param tokenOptional  Whether or not a no-token version of the constructor should be created.
+     * @param testCasePath   When specified, will generate testing data.
      */
     public static void Generate(
             String clientName,
@@ -78,14 +82,24 @@ public class Main {
             String commonPath,
             String commonPackage,
             String tokenName,
-            Boolean tokenOptional) throws Exception {
+            Boolean tokenOptional,
+            String testCasePath) throws Exception {
 
         JsonNode root;
         try (FileInputStream fis = new FileInputStream(specfile)) {
             root = Utils.getRoot(fis);
         }
 
-        Generator g = new Generator(root);
+        Generator g = null;
+        Publisher publisher = new Publisher();
+
+        if (testCasePath != null && !testCasePath.isEmpty()) {
+            g = new Generator(root, publisher);
+//            new TestcaseGenerator(testCasePath, publisher); 
+            new GoGenerator(testCasePath, publisher); 
+        } else {
+            g = new Generator(root);
+        }
 
         // Generate classes from the schemas
         // These are the non-premetive types for which classes are needed
@@ -120,6 +134,7 @@ public class Main {
                 commonPath,
                 tokenName,
                 tokenOptional);
+        publisher.terminate();
     }
 
     private static Options generateOptions() {

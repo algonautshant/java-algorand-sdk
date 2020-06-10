@@ -14,71 +14,23 @@ import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import com.algorand.sdkutils.listeners.Publisher;
+import com.algorand.sdkutils.listeners.Publisher.Events;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
-// TypeDef hold together information about a type
-// typeName is the generated code type: e.g. List<abc>, or MyEnumClassName
-// def is the definition of the type. e.g. the class declaration of the enum class
-// type is a loosely defined tag used by generator e.g. enum, list, etc.  
-// e.g. For enum type, typeName will be enum class name, def will be the enum 
-class TypeDef {
-    public TypeDef(String typeName, String def, String type) {
-        this.typeName = typeName;
-        this.def = def;
-        this.type = type;
-    }
-    public TypeDef(String typeName) {
-        this.typeName = typeName;
-        this.def = null;
-        this.type = null;
-    }
-    public boolean isOfType(String type) {
-        if (this.type == null) {
-            return false;
-        }
-        return this.type.contentEquals(type);
-    }
-
-    @Override
-    public String toString() {
-        throw new RuntimeException("Should not get the string value of the object directly!");
-    }
-    public String typeName;
-    public String def;
-
-    private String type;
-}
+import com.algorand.sdkutils.utils.*;
 
 public class Generator {
     public static final String TAB = "    ";
 
     protected JsonNode root;
+    protected Publisher publisher;
 
     static BufferedWriter getFileWriter(String className, String directory) throws IOException {
         File f = new File(directory + "/" + className + ".java");
         f.getParentFile().mkdirs();
         BufferedWriter bw = new BufferedWriter(new FileWriter(f));
         return bw;
-    }
-
-    public static String getCamelCase(String name, boolean firstCap) {
-        boolean capNext = firstCap;
-        char [] newName = new char[name.length()+1];
-        int n = 0;
-        for (int i = 0; i < name.length(); i++) {
-            if (name.charAt(i) == '-') {
-                capNext = true;
-                continue;
-            }
-            if (capNext) {
-                newName[n++] = Character.toUpperCase(name.charAt(i));
-                capNext = false;
-            } else {
-                newName[n++] = name.charAt(i);
-            }
-        }
-        return new String(newName, 0, n);
     }
 
     static String getTypeNameFromRef(String ref) {
@@ -92,14 +44,15 @@ public class Generator {
 
     // Get TypeDef for Address type. 
     // It provides the special getter/setter needed for this type.
-    static TypeDef getAddress(String propName, Map<String, Set<String>> imports, boolean forModel) {
+    static TypeDef getAddress(String propName,
+            Map<String, Set<String>> imports, boolean forModel, String desc, boolean required) {
         addImport(imports, "com.algorand.algosdk.crypto.Address");
         if (forModel) {
             addImport(imports, "java.security.NoSuchAlgorithmException");
         }
 
         StringBuffer sb = new StringBuffer();
-        String javaName = getCamelCase(propName, false);
+        String javaName = Tools.getCamelCase(propName, false);
 
         sb.append(TAB + "@JsonProperty(\"" + propName + "\")\n" + 
                 "    public void " + javaName + "(String "+ javaName +") throws NoSuchAlgorithmException {\n" + 
@@ -114,16 +67,17 @@ public class Generator {
                 "        }\n" +
                 "    }\n" + 
                 "    public Address " + javaName + ";\n");
-        return new TypeDef("Address", sb.toString(), "getterSetter");
+        return new TypeDef("Address", "address", sb.toString(), "getterSetter", propName, desc, required);
     }
 
     // Get base64 encoded byte[] type.
     // It provides the special getter/setter needed for this type
-    static TypeDef getBase64Encoded(String propName, Map<String, Set<String>> imports, boolean forModel) {
+    static TypeDef getBase64Encoded(String propName, String rawType,
+            Map<String, Set<String>> imports, boolean forModel, String desc, boolean required) {
         if (imports != null) {
             addImport(imports, "com.algorand.algosdk.util.Encoder");
         }
-        String javaName = getCamelCase(propName, false);
+        String javaName = Tools.getCamelCase(propName, false);
         StringBuffer sb = new StringBuffer();
         sb.append("    @JsonProperty(\"" + propName + "\")\n" +
                 "    public void " + javaName + "(String base64Encoded) {\n" +
@@ -135,12 +89,13 @@ public class Generator {
                 "    }\n" +
                 "    public byte[] "+ javaName +";\n");
         // getterSetter typeName is only used in path.
-        return new TypeDef("byte[]", sb.toString(), "getterSetter");
+        return new TypeDef("byte[]", "byteArray", sb.toString(), "getterSetter", propName, desc, required);
     }
 
     // Get array type of base64 encoded bytes.
     // It provides the special getter/setter needed for this type
-    static TypeDef getBase64EncodedArray(String propName, Map<String, Set<String>> imports, boolean forModel) {
+    static TypeDef getBase64EncodedArray(String propName, String rawType,
+            Map<String, Set<String>> imports, boolean forModel, String desc, boolean required) {
         if (forModel == false) {
             throw new RuntimeException("array of byte[] cannot yet be used in a path or path query.");
         }
@@ -148,7 +103,7 @@ public class Generator {
         addImport(imports, "java.util.ArrayList");
         addImport(imports, "java.util.List");
 
-        String javaName = getCamelCase(propName, false);
+        String javaName = Tools.getCamelCase(propName, false);
         StringBuffer sb = new StringBuffer();
 
         sb.append("    @JsonProperty(\"" + propName + "\")\n" +
@@ -168,7 +123,7 @@ public class Generator {
                 "     }\n" +
                 "    public List<byte[]> " + javaName + ";\n");
         // getterSetter typeName is only used in path.
-        return new TypeDef("", sb.toString(), "getterSetter");
+        return new TypeDef("", rawType, sb.toString(), "getterSetter", propName, desc, required);
     }
 
     // Get array type of base64 encoded bytes.
@@ -179,14 +134,14 @@ public class Generator {
             throw new RuntimeException("Cannot find enum info in node: " + prop.toString());
         }
         StringBuffer sb = new StringBuffer();
-        String enumClassName = getCamelCase(propName, true);
+        String enumClassName = Tools.getCamelCase(propName, true);
         sb.append(TAB + "public enum " + enumClassName + " {\n");
 
         Iterator<JsonNode> elmts = enumNode.elements();
         while(elmts.hasNext()) {
             String val = elmts.next().asText();
             sb.append(TAB + TAB + "@JsonProperty(\"" + val + "\") ");
-            String javaEnum = getCamelCase(val, true).toUpperCase();
+            String javaEnum = Tools.getCamelCase(val, true).toUpperCase();
             sb.append(javaEnum);
             sb.append("(\"" + val + "\")");
             if (elmts.hasNext()) {
@@ -206,7 +161,9 @@ public class Generator {
 
         sb.append(TAB + "}\n");
         enumClassName = "Enums." + enumClassName;
-        return new TypeDef(enumClassName, sb.toString(), "enum");
+        String desc = prop.get("description") == null ? "" : prop.get("description").asText();
+        return new TypeDef(enumClassName, prop.get("type").asText(), 
+                sb.toString(), "enum", propName, desc, isRequired(prop));
     }
 
     // getType returns the type fron the JsonNode
@@ -214,8 +171,8 @@ public class Generator {
             JsonNode prop, 
             boolean asObject,
             Map<String, Set<String>> imports,
-            String propName, boolean forModel) {
-
+            String propName, boolean forModel) {        
+        String desc = prop.get("description") == null ? "" : prop.get("description").asText();  
         if (prop.get("$ref") != null) {
             JsonNode typeNode = prop.get("$ref");
             String type = getTypeNameFromRef(typeNode.asText());
@@ -223,7 +180,7 @@ public class Generator {
             // No C/C++ style typedef in java, and this type could be a class with no properties
             prop = getFromRef(typeNode.asText());
             if (hasProperties(prop)) {
-                return new TypeDef(type);
+                return new TypeDef(type, type, propName, desc, isRequired(prop));
             }
         }
 
@@ -240,46 +197,49 @@ public class Generator {
         if (!format.isEmpty() ) {
             switch (format) {
             case "uint64":
-                return new TypeDef("java.math.BigInteger");
+                return new TypeDef("java.math.BigInteger", type, propName, desc, isRequired(prop));
             case "RFC3339 String":
                 addImport(imports, "java.util.Date");
                 addImport(imports, "com.algorand.algosdk.v2.client.common.Utils");
-                return new TypeDef("Date");
+                return new TypeDef("Date", "time", propName, desc, isRequired(prop));
             case "Address":
-                return getAddress(propName, imports, forModel);
+                return getAddress(propName, imports, forModel, desc, isRequired(prop));
             case "SignedTransaction":
                 addImport(imports, "com.algorand.algosdk.transaction.SignedTransaction");
-                return new TypeDef("SignedTransaction");
+                return new TypeDef("SignedTransaction", type, propName, desc, isRequired(prop));
             case "binary":
-                return getBase64Encoded(propName, null, forModel);
+                return getBase64Encoded(propName, type, null, forModel, desc, isRequired(prop));
             case "byte":
             case "base64":
             case "digest":
                 if (type.contentEquals("array")) {
-                    return getBase64EncodedArray(propName, imports, forModel);
+                    return getBase64EncodedArray(propName, type, imports, forModel, desc, isRequired(prop));
                 } else {
-                    return getBase64Encoded(propName, imports, forModel);
+                    return getBase64Encoded(propName, type, imports, forModel, desc, isRequired(prop));
                 }
             case "AccountID":
                 break;
             case "BlockCertificate":
             case "BlockHeader":
                 addImport(imports, "java.util.HashMap");
-                return new TypeDef("HashMap<String,Object>");
+                return new TypeDef("HashMap<String,Object>", type, propName, desc, isRequired(prop));
             }
         }
         switch (type) {
         case "integer":
-            return asObject ? new TypeDef("Long") : new TypeDef("long");
+            String longName = asObject ? "Long" : "long"; 
+            return new TypeDef(longName, type, propName, desc, isRequired(prop));
         case "object":
         case "string":
-            return new TypeDef("String");
+            return new TypeDef("String", type, propName, desc, isRequired(prop));
         case "boolean":
-            return asObject ? new TypeDef("Boolean") : new TypeDef("boolean");
+            String boolName = asObject ? "Boolean" : "boolean"; 
+            return new TypeDef(boolName, type, propName, desc, isRequired(prop));
         case "array":
             JsonNode arrayTypeNode = prop.get("items");
             TypeDef typeName = getType(arrayTypeNode, asObject, imports, propName, forModel);
-            return new TypeDef("List<" + typeName.typeName + ">", typeName.def, "list");
+            return new TypeDef("List<" + typeName.javaTypeName + ">", typeName.rawTypeName,
+                    typeName.def, type, propName, desc, isRequired(prop));
         default:
             throw new RuntimeException("Unrecognized type: " + type);
         }
@@ -358,7 +318,7 @@ public class Generator {
             return typeObj.def.toString();
         }
 
-        switch (typeObj.typeName) {
+        switch (typeObj.javaTypeName) {
         case "java.util.DateTime":
             throw new RuntimeException("Parsing of time is not yet implemented!");
         case "String":
@@ -368,9 +328,9 @@ public class Generator {
         case "java.math.BigInteger":
         default: // List and Models with Json properties
             buffer.append(TAB + "@JsonProperty(\"" + jprop + "\")\n");
-            buffer.append(TAB + "public " + typeObj.typeName + " " + javaName);
-            if (typeObj.isOfType("list")) {
-                buffer.append(" = new Array" + typeObj.typeName + "()");
+            buffer.append(TAB + "public " + typeObj.javaTypeName + " " + javaName);
+            if (typeObj.isOfType("array")) {
+                buffer.append(" = new Array" + typeObj.javaTypeName + "()");
             }
             buffer.append(";\n");
         }
@@ -388,49 +348,6 @@ public class Generator {
         default:
             return true;
         }
-    }
-
-    // formatComment formats the comment by breaking lines, and incorporating 
-    // embedded formatting inside the comment. 
-    // If the comment is embedded inside another comment, full == false
-    static String formatComment(String comment, String tab, boolean full) {
-        StringBuffer sb = new StringBuffer();
-
-        comment = comment.replace("\\[", "(");
-        comment = comment.replace("\\]", ")");
-        comment = comment.replace("\n", " __NEWLINE__ ");
-        if (full) {
-            sb.append(tab+"/**");
-            sb.append("\n"+tab+" * ");
-        } else {
-            sb.append(tab+" * ");
-        }
-
-        StringTokenizer st = new StringTokenizer(comment);
-        int line = 0;
-        while (st.hasMoreTokens()) {
-            String token = st.nextToken();
-            if (token.contentEquals("__NEWLINE__")) {
-                if (line == 0) {
-                    continue;
-                } else {
-                    line = 0;
-                    sb.append("\n"+tab+" * ");
-                    continue;
-                }
-            }
-            if (line + token.length() > 80) {
-                line = 0;
-                sb.append("\n"+tab+" * ");
-            }
-            token = token.replace('*', ' ');
-            sb.append(token + " ");
-            line += token.length() + 1;
-        }
-        if (full) {
-            sb.append("\n"+tab+" */\n");
-        }
-        return sb.toString();
     }
 
     // Returns an iterator in sorted order of the properties (json nodes). 
@@ -475,9 +392,10 @@ public class Generator {
         while (properties.hasNext()) {
             Entry<String, JsonNode> prop = properties.next();
             String jprop = prop.getKey();
-            String javaName = getCamelCase(jprop, false);
+            String javaName = Tools.getCamelCase(jprop, false);
             TypeDef typeObj = getType(prop.getValue(), true, imports, jprop, true);
-            if (typeObj.isOfType("list")) {
+            publisher.publish(Events.NEW_MODEL_PROPERTY, typeObj);
+            if (typeObj.isOfType("array")) {
                 addImport(imports, "java.util.ArrayList");
                 addImport(imports, "java.util.List");
             }
@@ -485,7 +403,7 @@ public class Generator {
             String desc = null;
             if (prop.getValue().get("description") != null) {
                 desc = prop.getValue().get("description").asText();
-                desc = formatComment(desc, TAB + "", true);
+                desc = Tools.formatComment(desc, TAB + "", true);
             }
 
             // public type
@@ -507,7 +425,7 @@ public class Generator {
         while (properties.hasNext()) {
             Entry<String, JsonNode> prop = properties.next();
             String jprop = prop.getKey();
-            String javaName = getCamelCase(jprop, false);
+            String javaName = Tools.getCamelCase(jprop, false);
             buffer.append("        if (!Objects.deepEquals(this." + javaName + ", other." + javaName + ")) return false;\n");
         }
         buffer.append("\n        return true;\n    }\n");
@@ -517,9 +435,10 @@ public class Generator {
     // This is the root method for writing the complete class. 
     void writeClass(String className, JsonNode propertiesNode, String desc, String directory, String pkg) throws IOException {
         System.out.println("Generating ... " + className);
+        publisher.publish(Events.NEW_MODEL, new StructDef(className, desc));
 
         Iterator<Entry<String, JsonNode>> properties = getSortedProperties(propertiesNode);
-        className = Generator.getCamelCase(className, true);
+        className = Tools.getCamelCase(className, true);
         BufferedWriter bw = getFileWriter(className, directory);
         bw.append("package " + pkg + ";\n\n");
 
@@ -538,7 +457,7 @@ public class Generator {
 
         bw.append(getImports(imports));
         if (desc != null) {
-            bw.append(desc);
+            bw.append(Tools.formatComment(desc, "", true));
         }
         bw.append("public class " + className + " extends PathResponse {\n\n");
         bw.append(body);
@@ -555,7 +474,7 @@ public class Generator {
         while (st.hasMoreTokens()) {
             String elt = st.nextToken();
             if (elt.charAt(0) == '{') {
-                String jName = Generator.getCamelCase(elt.substring(1, elt.length()-1), false);
+                String jName = Tools.getCamelCase(elt.substring(1, elt.length()-1), false);
                 nPath.add(jName);
             } else {
                 nPath.add("\"" + elt + "\"");
@@ -627,12 +546,12 @@ public class Generator {
 
         while (properties != null && properties.hasNext()) {
             Entry<String, JsonNode> prop = properties.next();
-            String propName = Generator.getCamelCase(prop.getKey(), false);
-            String setterName = Generator.getCamelCase(prop.getKey(), false);
+            String propName = Tools.getCamelCase(prop.getKey(), false);
+            String setterName = Tools.getCamelCase(prop.getKey(), false);
             TypeDef propType = getType(prop.getValue(), true, imports, propName, false);
 
             // Do not expose format property
-            if (propType.typeName.equals("Enums.Format")) {
+            if (propType.javaTypeName.equals("Enums.Format")) {
                 if (!className.equals("AccountInformation")) {
                     // Don't set format to msgpack for AccountInformation
                     addFormatMsgpack = true;
@@ -648,37 +567,45 @@ public class Generator {
                 if (propType.isOfType("enum")) {
                     throw new RuntimeException("Enum in paths is not supported! " + propName);
                 }
-                decls.append(TAB + "private " + propType.typeName + " " + propName + ";\n");
+                decls.append(TAB + "private " + propType.javaTypeName + " " + propName + ";\n");
+                String desc = "";
                 if (prop.getValue().get("description") != null) {
-                    String desc = prop.getValue().get("description").asText();
-                    desc = formatComment("@param " + propName + " " + desc, TAB, false);
+                    propType.doc = desc;
+                    desc = prop.getValue().get("description").asText();
+                    desc = Tools.formatComment("@param " + propName + " " + desc, TAB, false);
                     constructorComments.add(desc);
                 }
 
-                constructorHeader.append(", " + propType.typeName + " " + propName);
+                constructorHeader.append(", " + propType.javaTypeName + " " + propName);
                 constructorBody.append("        this." + propName + " = " + propName + ";\n");
 
                 if (pAdded) {
                     generatedPathsEntry.append(",\n            ");
                 }
-                generatedPathsEntry.append(propType.typeName + " " + propName);
+                generatedPathsEntry.append(propType.javaTypeName + " " + propName);
                 generatedPathsEntryBody.append(", " + propName);
                 pAdded = true;
+                
+                publisher.publish(Events.PATH_PARAMETER, propType);
+                
                 continue;
             }
 
             if (prop.getValue().get("description") != null) {
                 String desc = prop.getValue().get("description").asText();
-                desc = formatComment(desc, TAB, true);
+                propType.doc = desc;
+                desc = Tools.formatComment(desc, TAB, true);
                 builders.append(desc);
             }
-            builders.append(TAB + "public " + className + " " + setterName + "(" + propType.typeName + " " + propName + ") {\n");
-            String valueOfString = getStringValueOfStatement(propType.typeName, propName);
+            builders.append(TAB + "public " + className + " " + setterName + "(" + propType.javaTypeName + " " + propName + ") {\n");
+            String valueOfString = getStringValueOfStatement(propType.javaTypeName, propName);
 
             if (inBody(prop.getValue())) {
                 builders.append(TAB + TAB + "addToBody("+ propName +");\n");
+                publisher.publish(Events.BODY_CONTENT, propType);
             } else {
                 builders.append(TAB + TAB + "addQuery(\"" + propCode + "\", "+ valueOfString +");\n");
+                publisher.publish(Events.QUERY_PARAMETER, propType);
             }
             builders.append(TAB + TAB + "return this;\n");
             builders.append(TAB + "}\n");
@@ -771,8 +698,8 @@ public class Generator {
         spec = spec.get(httpMethod);
 
         String className = spec.get("operationId").asText();
-        String methodName = Generator.getCamelCase(className, false);
-        className = Generator.getCamelCase(className, true);
+        String methodName = Tools.getCamelCase(className, false);
+        className = Tools.getCamelCase(className, true);
 
         JsonNode paramNode = spec.get("parameters");
         String returnType = "String";
@@ -783,7 +710,7 @@ public class Generator {
                 returnType = Generator.getTypeNameFromRef(returnTypeNode.get("schema").get("$ref").asText());
             } else {
                 returnType = Generator.getTypeNameFromRef(returnType);
-                returnType = Generator.getCamelCase(returnType, true);
+                returnType = Tools.getCamelCase(returnType, true);
             }
         }
         String desc = spec.get("description") != null ? spec.get("description").asText() : "";
@@ -809,9 +736,12 @@ public class Generator {
 
         StringBuffer sb = new StringBuffer();
         sb.append("\n");
-        sb.append(Generator.formatComment(desc, "", true));
-        generatedPathsEntry.append(Generator.formatComment(desc, TAB, true));
+        sb.append(Tools.formatComment(desc, "", true));
+        generatedPathsEntry.append(Tools.formatComment(desc, TAB, true));
         generatedPathsEntry.append("    public " + className + " " + methodName + "(");
+        
+        this.publisher.publish(Events.NEW_QUERY, className);
+        
         sb.append("public class " + className + " extends Query {\n\n");
         sb.append(
                 processQueryParams(
@@ -826,10 +756,12 @@ public class Generator {
         bw.append(getImports(imports));
         bw.append(sb);
         bw.close();
+        
+        publisher.publish(Events.END_QUERY);
     }
 
     // Generate all the enum classes in the spec file. 
-    public static void generateEnumClasses (JsonNode root, String rootPath, String pkg) throws IOException {
+    public void generateEnumClasses (JsonNode root, String rootPath, String pkg) throws IOException {
 
         BufferedWriter bw = getFileWriter("Enums", rootPath);
         bw.append("package " + pkg + ";\n\n");
@@ -849,7 +781,7 @@ public class Generator {
                 if (cls.getValue().get("description") != null) {
                     String comment = null;
                     comment = cls.getValue().get("description").asText();
-                    bw.append(Generator.formatComment(comment, "", true));
+                    bw.append(Tools.formatComment(comment, "", true));
                 }
                 TypeDef enumType = getEnum(cls.getValue(), cls.getKey());
                 bw.append(enumType.def);
@@ -875,7 +807,6 @@ public class Generator {
                     }
                     if (cls.getValue().get("description") != null) {
                         desc = cls.getValue().get("description").asText();
-                        desc = formatComment(desc, "", true);
                     }
                     writeClass(cls.getKey(), cls.getValue().get("properties"), desc, rootPath, pkg);
                 }
@@ -920,14 +851,21 @@ public class Generator {
                 writeQueryClass(gpBody, path.getValue(), path.getKey(), rootPath, pkg, modelPkg);
 
                 // Fill GeneratedPaths class
-                String className = getCamelCase(path.getValue().findPath("operationId").asText(), true);
+                String className = Tools.getCamelCase(path.getValue().findPath("operationId").asText(), true);
                 gpImports.append("import " + pkg + "." + className + ";\n");
             }
             gpMethods.append(gpBody);
         }
     }
 
+
     public Generator (JsonNode root) {
         this.root = root;
+        this.publisher = new Publisher();
+    }
+
+    public Generator (JsonNode root, Publisher publisher) {
+        this.root = root;
+        this.publisher = publisher;
     }
 }
