@@ -37,7 +37,8 @@ public class Main {
                     line.getOptionValue("c"),
                     line.getOptionValue("cp"),
                     line.getOptionValue("t"),
-                    !line.hasOption("tr"));
+                    !line.hasOption("tr"),
+                    null);
         } catch (ParseException e) {
             System.out.println("Problem processing arguments: " + e.getMessage());
             System.out.println("\n\n");
@@ -70,7 +71,7 @@ public class Main {
      * @param commonPackage  Package name to put at the top of generated client class.
      * @param tokenName      Name of the token used for this application. i.e. X-Algo-API-Token
      * @param tokenOptional  Whether or not a no-token version of the constructor should be created.
-     * @param testCasePath   When specified, will generate testing data.
+     * @param goDirectory    When specified, will generate go code.
      */
     public static void Generate(
             String clientName,
@@ -83,7 +84,7 @@ public class Main {
             String commonPackage,
             String tokenName,
             Boolean tokenOptional,
-            String testCasePath) throws Exception {
+            String goDirectory) throws Exception {
 
         JsonNode root;
         try (FileInputStream fis = new FileInputStream(specfile)) {
@@ -93,10 +94,9 @@ public class Main {
         Generator g = null;
         Publisher publisher = new Publisher();
 
-        if (testCasePath != null && !testCasePath.isEmpty()) {
+        if (goDirectory != null && !goDirectory.isEmpty()) {
             g = new Generator(root, publisher);
-//            new TestcaseGenerator(testCasePath, publisher); 
-            new GoGenerator(testCasePath, publisher); 
+            new GoGenerator(goDirectory, "indexer", publisher); 
         } else {
             g = new Generator(root);
         }

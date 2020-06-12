@@ -18,9 +18,9 @@ public class Tools {
         comment = comment.replace("\n", " __NEWLINE__ ");
         if (full) {
             sb.append(tab+"/**");
-            sb.append("\n"+tab+" * ");
+            sb.append("\n"+tab+" *");
         } else {
-            sb.append(tab+" * ");
+            sb.append(tab+" *");
         }
 
         StringTokenizer st = new StringTokenizer(comment);
@@ -32,16 +32,18 @@ public class Tools {
                     continue;
                 } else {
                     line = 0;
-                    sb.append("\n"+tab+" * ");
+                    sb.append("\n"+tab+" *");
                     continue;
                 }
             }
             if (line + token.length() > 80) {
                 line = 0;
-                sb.append("\n"+tab+" * ");
+                sb.append("\n"+tab+" *");
             }
             token = token.replace('*', ' ');
-            sb.append(token + " ");
+            sb.append(" ");
+
+            sb.append(token);
             line += token.length() + 1;
         }
         if (full) {

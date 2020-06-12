@@ -16,7 +16,7 @@ public abstract class Subscriber {
      * @param event
      * @param note
      */
-    public abstract void onEvent(Events event, String note);
+    public abstract void onEvent(Events event, String [] notes);
     
     /**
      * Used for: 

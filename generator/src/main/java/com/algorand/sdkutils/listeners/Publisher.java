@@ -14,7 +14,8 @@ public class Publisher {
     public enum Events {
         ALL,
         NEW_MODEL,
-        NEW_MODEL_PROPERTY,
+        NEW_PROPERTY,
+        NEW_RETURN_TYPE,
         NEW_QUERY,
         QUERY_PARAMETER,
         PATH_PARAMETER,
@@ -54,10 +55,10 @@ public class Publisher {
         }
     }
     
-    public void publish(Events event, String note) {
+    public void publish(Events event, String [] notes) {
         if (subscribers.get(event) != null) {
             for (Subscriber subscriber : subscribers.get(event)) {
-                subscriber.onEvent(event, note);
+                subscriber.onEvent(event, notes);
             }
         }
     }

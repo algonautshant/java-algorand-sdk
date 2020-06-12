@@ -123,7 +123,7 @@ public class Generator {
                 "     }\n" +
                 "    public List<byte[]> " + javaName + ";\n");
         // getterSetter typeName is only used in path.
-        return new TypeDef("", rawType, sb.toString(), "getterSetter", propName, desc, required);
+        return new TypeDef("", rawType, sb.toString(), "getterSetter,array", propName, desc, required);
     }
 
     // Get array type of base64 encoded bytes.
@@ -179,6 +179,9 @@ public class Generator {
             // Need to check here if this type does not have a class of its own 
             // No C/C++ style typedef in java, and this type could be a class with no properties
             prop = getFromRef(typeNode.asText());
+            if (desc.isEmpty()) {
+                desc = prop.get("description") == null ? "" : prop.get("description").asText(); 
+            }
             if (hasProperties(prop)) {
                 return new TypeDef(type, type, propName, desc, isRequired(prop));
             }
@@ -213,6 +216,7 @@ public class Generator {
             case "base64":
             case "digest":
                 if (type.contentEquals("array")) {
+                    type = prop.get("items").get("type").asText(); 
                     return getBase64EncodedArray(propName, type, imports, forModel, desc, isRequired(prop));
                 } else {
                     return getBase64Encoded(propName, type, imports, forModel, desc, isRequired(prop));
@@ -394,7 +398,7 @@ public class Generator {
             String jprop = prop.getKey();
             String javaName = Tools.getCamelCase(jprop, false);
             TypeDef typeObj = getType(prop.getValue(), true, imports, jprop, true);
-            publisher.publish(Events.NEW_MODEL_PROPERTY, typeObj);
+            publisher.publish(Events.NEW_PROPERTY, typeObj);
             if (typeObj.isOfType("array")) {
                 addImport(imports, "java.util.ArrayList");
                 addImport(imports, "java.util.List");
@@ -433,9 +437,14 @@ public class Generator {
 
     // writeClass writes the Model class. 
     // This is the root method for writing the complete class. 
-    void writeClass(String className, JsonNode propertiesNode, String desc, String directory, String pkg) throws IOException {
+    void writeClass(String className, 
+            JsonNode propertiesNode, 
+            String desc, 
+            String directory, 
+            String pkg,
+            Events event) throws IOException {
         System.out.println("Generating ... " + className);
-        publisher.publish(Events.NEW_MODEL, new StructDef(className, desc));
+        publisher.publish(event, new StructDef(className, desc));
 
         Iterator<Entry<String, JsonNode>> properties = getSortedProperties(propertiesNode);
         className = Tools.getCamelCase(className, true);
@@ -548,7 +557,7 @@ public class Generator {
             Entry<String, JsonNode> prop = properties.next();
             String propName = Tools.getCamelCase(prop.getKey(), false);
             String setterName = Tools.getCamelCase(prop.getKey(), false);
-            TypeDef propType = getType(prop.getValue(), true, imports, propName, false);
+            TypeDef propType = getType(prop.getValue(), true, imports, prop.getKey(), false);
 
             // Do not expose format property
             if (propType.javaTypeName.equals("Enums.Format")) {
@@ -714,7 +723,7 @@ public class Generator {
             }
         }
         String desc = spec.get("description") != null ? spec.get("description").asText() : "";
-        desc = desc + "\n" + path;
+        String discAndPath = desc + "\n" + path;
         System.out.println("Generating ... " + className);
         Iterator<Entry<String, JsonNode>> properties = null;
         if ( paramNode != null) {
@@ -736,11 +745,11 @@ public class Generator {
 
         StringBuffer sb = new StringBuffer();
         sb.append("\n");
-        sb.append(Tools.formatComment(desc, "", true));
-        generatedPathsEntry.append(Tools.formatComment(desc, TAB, true));
+        sb.append(Tools.formatComment(discAndPath, "", true));
+        generatedPathsEntry.append(Tools.formatComment(discAndPath, TAB, true));
         generatedPathsEntry.append("    public " + className + " " + methodName + "(");
-        
-        this.publisher.publish(Events.NEW_QUERY, className);
+        String [] strarray = {className, returnType, path, desc};
+        this.publisher.publish(Events.NEW_QUERY, strarray);
         
         sb.append("public class " + className + " extends Query {\n\n");
         sb.append(
@@ -808,7 +817,8 @@ public class Generator {
                     if (cls.getValue().get("description") != null) {
                         desc = cls.getValue().get("description").asText();
                     }
-                    writeClass(cls.getKey(), cls.getValue().get("properties"), desc, rootPath, pkg);
+                    writeClass(cls.getKey(), cls.getValue().get("properties"), 
+                            desc, rootPath, pkg, Events.NEW_MODEL);
                 }
     }
 
@@ -829,12 +839,18 @@ public class Generator {
                                 // It refers to a defined class
                                 continue;
                             }
-                            writeClass(rtype.getKey(), rSchema.get("properties"), null, rootPath, pkg);
+                            writeClass(rtype.getKey(), rSchema.get("properties"), 
+                                    null, rootPath, pkg, Events.NEW_RETURN_TYPE);
                 }
     }
 
     // Generate all the path expression classes
-    public void generateQueryMethods(String rootPath, String pkg, String modelPkg, File gpImpDirFile, File gpMethodsDirFile) throws IOException {
+    public void generateQueryMethods(
+            String rootPath, 
+            String pkg,
+            String modelPkg, 
+            File gpImpDirFile, 
+            File gpMethodsDirFile) throws IOException {
         // GeneratedPaths file
         try (   BufferedWriter gpImports = new BufferedWriter(new FileWriter(gpImpDirFile));
                 BufferedWriter gpMethods = new BufferedWriter(new FileWriter(gpMethodsDirFile))) {

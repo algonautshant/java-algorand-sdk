@@ -43,7 +43,7 @@ public class TypeDef {
         if (this.type == null) {
             return false;
         }
-        return this.type.contentEquals(type);
+        return this.type.contains(type);
     }
 
     @Override
