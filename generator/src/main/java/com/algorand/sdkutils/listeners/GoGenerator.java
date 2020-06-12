@@ -216,7 +216,21 @@ public class GoGenerator extends Subscriber {
             pathSB.append("/");
             String elt = st.nextToken();
             if (elt.charAt(0) == '{') {
+                
+                // Get the property name
+                // The property name can be different from the name in the path placeholder
+                // The reason for this is the x-go-name property overriding the property name
+                // This is expected to be only case difference
                 String propName = Tools.getCamelCase(elt.substring(1, elt.length()-1), false);
+                if (pathParameters.get(propName) == null) {
+                    // The name is overridden. Find the name
+                    for (String name : pathParameters.keySet()) {
+                        if (name.toUpperCase().equals(propName.toUpperCase())) {
+                            propName = name;
+                        }
+                    }
+                }
+                
                 switch(pathParameters.get(propName)) {
                 case "string":
                     pathSB.append("%s");

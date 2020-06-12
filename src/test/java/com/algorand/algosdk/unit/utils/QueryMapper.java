@@ -20,13 +20,9 @@ public class QueryMapper {
         case "searchForAccounts":
             return client.searchForAccounts();
         case "lookupAccountByID":
-            return client.lookupAccountByID(new Address(args[0]));
+            return client.lookupAccountByID(args[0]);
         case "lookupAccountTransactions":
-            return client.lookupAccountTransactions(new Address(args[0]));
-        case "searchForApplications":
-            return client.searchForApplications();
-        case "lookupApplication":
-            return client.lookupApplication(Long.valueOf(args[0]));
+            return client.lookupAccountTransactions(args[0]);
         case "searchForAssets":
             return client.searchForAssets();
         case "lookupAssetByID":
@@ -85,14 +81,8 @@ public class QueryMapper {
             break;
         case "searchForAccounts":
             switch (property) {
-            case "application-id":
-                ((SearchForAccounts)q).applicationId(Long.valueOf(value));
-                break;
             case "asset-id":
                 ((SearchForAccounts)q).assetId(Long.valueOf(value));
-                break;
-            case "auth-addr":
-                ((SearchForAccounts)q).authAddr(new Address(value));
                 break;
             case "currency-greater-than":
                 ((SearchForAccounts)q).currencyGreaterThan(Long.valueOf(value));
@@ -123,9 +113,6 @@ public class QueryMapper {
             case "after-time":
                 ((LookupAccountTransactions)q).afterTime(Utils.parseDate(value));
                 break;
-            case "application-id":
-                ((LookupAccountTransactions)q).applicationId(Long.valueOf(value));
-                break;
             case "asset-id":
                 ((LookupAccountTransactions)q).assetId(Long.valueOf(value));
                 break;
@@ -153,9 +140,6 @@ public class QueryMapper {
             case "note-prefix":
                 ((LookupAccountTransactions)q).notePrefix(Encoder.decodeFromBase64(value));
                 break;
-            case "rekey-to":
-                ((LookupAccountTransactions)q).rekeyTo(Boolean.valueOf(value));
-                break;
             case "round":
                 ((LookupAccountTransactions)q).round(Long.valueOf(value));
                 break;
@@ -167,23 +151,6 @@ public class QueryMapper {
                 break;
             case "txid":
                 ((LookupAccountTransactions)q).txid(value);
-                break;
-            }
-            break;
-        case "searchForApplications":
-            switch (property) {
-            case "application-id":
-                ((SearchForApplications)q).applicationId(Long.valueOf(value));
-                break;
-            case "round":
-                ((SearchForApplications)q).round(Long.valueOf(value));
-                break;
-            }
-            break;
-        case "lookupApplication":
-            switch (property) {
-            case "round":
-                ((LookupApplication)q).round(Long.valueOf(value));
                 break;
             }
             break;
@@ -243,9 +210,6 @@ public class QueryMapper {
             case "after-time":
                 ((LookupAssetTransactions)q).afterTime(Utils.parseDate(value));
                 break;
-            case "application-id":
-                ((LookupAssetTransactions)q).applicationId(Long.valueOf(value));
-                break;
             case "before-time":
                 ((LookupAssetTransactions)q).beforeTime(Utils.parseDate(value));
                 break;
@@ -272,9 +236,6 @@ public class QueryMapper {
                 break;
             case "note-prefix":
                 ((LookupAssetTransactions)q).notePrefix(Encoder.decodeFromBase64(value));
-                break;
-            case "rekey-to":
-                ((LookupAssetTransactions)q).rekeyTo(Boolean.valueOf(value));
                 break;
             case "round":
                 ((LookupAssetTransactions)q).round(Long.valueOf(value));
@@ -305,9 +266,6 @@ public class QueryMapper {
             case "after-time":
                 ((SearchForTransactions)q).afterTime(Utils.parseDate(value));
                 break;
-            case "application-id":
-                ((SearchForTransactions)q).applicationId(Long.valueOf(value));
-                break;
             case "asset-id":
                 ((SearchForTransactions)q).assetId(Long.valueOf(value));
                 break;
@@ -337,9 +295,6 @@ public class QueryMapper {
                 break;
             case "note-prefix":
                 ((SearchForTransactions)q).notePrefix(Encoder.decodeFromBase64(value));
-                break;
-            case "rekey-to":
-                ((SearchForTransactions)q).rekeyTo(Boolean.valueOf(value));
                 break;
             case "round":
                 ((SearchForTransactions)q).round(Long.valueOf(value));

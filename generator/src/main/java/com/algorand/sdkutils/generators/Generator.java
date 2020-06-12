@@ -257,7 +257,9 @@ public class Generator {
         String type = typeNode.get("type").asText();
         format = typeNode.get("format") != null && format.isEmpty() ? typeNode.get("format").asText() : format;
         format = typeNode.get("x-go-name") != null && format.isEmpty() ? typeNode.get("x-go-name").asText() : format;
-        if ((propName.equals("address") || propName.contentEquals("accountId")) &&
+        if ((propName.equals("address") || 
+                propName.contentEquals("account-id") || 
+                propName.contentEquals("AccountID")) &&
                 type.equals("string")) {
             format = "Address";
         }
@@ -397,7 +399,8 @@ public class Generator {
             Entry<String, JsonNode> prop = properties.next();
             String jprop = prop.getKey();
             String javaName = Tools.getCamelCase(jprop, false);
-            TypeDef typeObj = getType(prop.getValue(), true, imports, jprop, true);
+            String goName = prop.getValue().get("x-go-name") == null ? jprop : prop.getValue().get("x-go-name").asText();
+            TypeDef typeObj = getType(prop.getValue(), true, imports, goName, true);
             publisher.publish(Events.NEW_PROPERTY, typeObj);
             if (typeObj.isOfType("array")) {
                 addImport(imports, "java.util.ArrayList");
@@ -557,7 +560,8 @@ public class Generator {
             Entry<String, JsonNode> prop = properties.next();
             String propName = Tools.getCamelCase(prop.getKey(), false);
             String setterName = Tools.getCamelCase(prop.getKey(), false);
-            TypeDef propType = getType(prop.getValue(), true, imports, prop.getKey(), false);
+            String goName = prop.getValue().get("x-go-name") == null ? prop.getKey() : prop.getValue().get("x-go-name").asText();
+            TypeDef propType = getType(prop.getValue(), true, imports, goName, false);
 
             // Do not expose format property
             if (propType.javaTypeName.equals("Enums.Format")) {
