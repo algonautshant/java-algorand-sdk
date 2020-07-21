@@ -855,7 +855,7 @@ type TransactionApplication struct {
 
 	// ApplicationArgs (apaa) transaction specific arguments accessed from the
 	// application's approval-program and clear-state-program.
-	ApplicationArgs []byte `json:"application-args,omitempty"`
+	ApplicationArgs [][]byte `json:"application-args,omitempty"`
 
 	// ApplicationId (apid) ID of the application being configured or empty if
 	// creating.
@@ -1031,7 +1031,7 @@ type TransactionSignature struct {
 // data/transactions/logicsig.go
 type TransactionSignatureLogicsig struct {
 	// Args (arg) Logic arguments, base64 encoded.
-	Args []byte `json:"args,omitempty"`
+	Args [][]byte `json:"args,omitempty"`
 
 	// Logic (l) Program signed by a signature or multi signature, or hashed to be the
 	// address of ana ccount. Base64 encoded TEAL program.
