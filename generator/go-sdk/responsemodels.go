@@ -778,6 +778,10 @@ type Transaction struct {
 	// GenesisId (gen) genesis block ID.
 	GenesisId string `json:"genesis-id,omitempty"`
 
+	// GlobalStateDelta (gd) Global state key/value changes for the application being
+	// executed by this transaction.
+	GlobalStateDelta []EvalDeltaKeyValue `json:"global-state-delta,omitempty"`
+
 	// Group (grp) Base64 encoded byte array of a sha512/256 digest. When present
 	// indicates that this transaction is part of a transaction group and the value is
 	// the sha512/256 hash of the transactions in that group.
@@ -803,6 +807,10 @@ type Transaction struct {
 	// until the LastValid round passes. While this transaction possesses the lease, no
 	// other transaction specifying this lease can be confirmed.
 	Lease []byte `json:"lease,omitempty"`
+
+	// LocalStateDelta (ld) Local state key/value changes for the application being
+	// executed by this transaction.
+	LocalStateDelta []AccountStateDelta `json:"local-state-delta,omitempty"`
 
 	// Note (note) Free form data.
 	Note []byte `json:"note,omitempty"`
